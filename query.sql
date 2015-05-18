@@ -1,5 +1,5 @@
 USE wmf;
-SELECT year, geocoded_data['country'] AS country, uri_query, user_agent, COUNT(*) AS requests
+SELECT year, referer, geocoded_data['country_code'] AS country, uri_query, user_agent, COUNT(*) AS requests
 FROM webrequest
 WHERE year = 2015
 AND month = 04
@@ -9,4 +9,4 @@ AND uri_path = '/w/api.php'
 AND uri_query RLIKE('action=opensearch')
 AND webrequest_source IN('text','mobile')
 AND http_status IN('200','304')
-GROUP BY geocoded_data['country'], uri_query, user_agent;
+GROUP BY year, referer, geocoded_data['country_code'], uri_query, user_agent;
