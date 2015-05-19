@@ -115,3 +115,38 @@ ggsave(file = "namespace_choice.svg",
               x = "Namespace choice",
               y = "Requests") +
          plot_theme())
+
+#User agents
+#Parse
+agents <- uaparser(data$user_agent)
+
+#Referers
+referers <- data[,j=list(requests = sum(requests)), by="referer"]
+internal_regex <- "wik(ipedia|ivoyage|iversity|iquote|ibooks|isource|imedia(foundation)?|idata|tionary)\\."
+search_regex <- "(ask|bing|google|yahoo|baidu|naver|aol|altervista|yandex|sogou|duckduckgo)\\."
+social_regex <- "(^t\\.co|facebook\\.)"
+make_percentage <- function(x, regex, invert = FALSE){
+  result <- grepl(x = x$referer, pattern = regex)
+  if(invert){
+    sum(x$requests[!result])/sum(x$requests)
+  } else {
+    sum(x$requests[result])/sum(x$requests)
+  }
+}
+out <- data.frame(variable = c("% with a referer","% with referer, from google/other search",
+                               "% with referer, internal", "% with referer, from social"),
+                  value = as.numeric(rep(0,4)))
+referers <- referers[order(referers$requests, decreasing = T)]
+out$value[1] <- make_percentage(referers,"-",TRUE)
+out$value[2] <- 0
+out$value[3] <- make_percentage(referers,internal_regex,TRUE)
+out$value[4] <- 0
+ggsave(file = "referer_breakdown.svg",
+       plot = ggplot(out, aes(reorder(variable, value),value*100)) +
+         geom_bar(stat = "identity", fill = "#009E73") +
+         labs(title = "Search API traffic",
+              x = "Class",
+              y = "Percentage") +
+         expand_limits(y=100)+
+         coord_flip() + 
+         plot_theme())
