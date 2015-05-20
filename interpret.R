@@ -51,7 +51,7 @@ ggsave(file = "geo_plot.svg",
          labs(title = "Geographic distribution of API search requests",
               x = "Longitude",
               y = "Latitude") +
-         scale_fill_gradientn(colours=brewer.pal(9, "Blues")[3:8]))
+         scale_fill_gradientn(colours=brewer.pal(9, "Blues")[3:8]) + plot_theme())
 
 plot_theme <- function(){
   palette <- brewer.pal("Greys", n=9)
@@ -118,7 +118,24 @@ ggsave(file = "namespace_choice.svg",
 
 #User agents
 #Parse
-agents <- uaparser(data$user_agent)
+agents <- as.data.table(uaparser(data$user_agent))
+agents$device[!agents$device %in% c("Other","Spider")] <- "Mobile/Tablet"
+agents$requests <- data$requests
+agent_aggregate <- agents[,j=list(requests = sum(requests)), by = "device"]
+agent_aggregate$percentage <- agent_aggregate$requests/sum(agent_aggregate$requests)
+ggsave(file = "agent_breakdown.svg",
+       plot = ggplot(agent_aggregate, aes(reorder(device, percentage),percentage*100)) +
+         geom_bar(stat = "identity", fill = "#009E73") +
+         labs(title = "User agents of search API traffic",
+              x = "Class",
+              y = "Percentage") +
+         expand_limits(y=100)+
+         coord_flip() + 
+         plot_theme())
+
+#Hand-code
+to_hc <- data[,j=list(requests = sum(requests)), "user_agent"]
+to_hc <- to_hc[order(to_hc$requests, decreasing = TRUE)]
 
 #Referers
 referers <- data[,j=list(requests = sum(requests)), by="referer"]
@@ -137,7 +154,7 @@ out <- data.frame(variable = c("% with a referer","% with referer, from google/o
                                "% with referer, internal", "% with referer, from social"),
                   value = as.numeric(rep(0,4)))
 referers <- referers[order(referers$requests, decreasing = T)]
-out$value[1] <- make_percentage(referers,"-",TRUE)
+out$value[1] <- make_percentage(referers,"(-|  )",TRUE)
 out$value[2] <- 0
 out$value[3] <- make_percentage(referers,internal_regex,TRUE)
 out$value[4] <- 0
